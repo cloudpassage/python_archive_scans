@@ -5,12 +5,13 @@ from config import CONFIG
 
 
 class ApiController():
-    @staticmethod
-    def build_http_session():
+    def build_http_session(self):
         key_id = os.environ['KEY_ID'] or CONFIG['key_id']
         secret_key = os.environ['SECRET_KEY'] or CONFIG['secret_key']
-
-        session = cloudpassage.HaloSession(key_id, secret_key)
+        integration_string = self.get_integration_string()
+        session = cloudpassage.HaloSession(key_id,
+                                           secret_key,
+                                           integration_string=integration_string)
         return cloudpassage.HttpHelper(session)
 
     def get(self, endpoint):
@@ -46,3 +47,18 @@ class ApiController():
             elif kwargs[filt]:
                 filter_list.append("%s=%s" % (filt, kwargs[filt]))
         return "?%s" % ("&".join(filter_list))
+
+    def get_integration_string(self):
+        """Return integration string for this tool."""
+        return "python_archive_scans/%s" % self.get_tool_version()
+
+    def get_tool_version(self):
+        """Get version of this tool from the __init__.py file."""
+        here_path = os.path.abspath(os.path.dirname(__file__))
+        init_file = os.path.join(here_path, "__init__.py")
+        ver = 0
+        with open(init_file, 'r') as i_f:
+            rx_compiled = re.compile(r"\s*__version__\s*=\s*\"(\S+)\"")
+            ver = rx_compiled.search(i_f.read()).group(1)
+        return ver
+
